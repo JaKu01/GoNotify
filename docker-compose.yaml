@@ -1,0 +1,20 @@
+services:
+  notify:
+    build:
+      dockerfile: Dockerfile
+    container_name: notify
+    volumes:
+      - ./static:/app/static
+      - ./template:/app/template
+      - ./keys:/app/keys
+      - ./internal/sqlite:/app/internal/sqlite
+    environment:
+      - TZ=Europe/Berlin
+    ports:
+      - "6123:8080"
+    networks:
+      - home_network
+
+networks:
+  home_network:
+    external: true

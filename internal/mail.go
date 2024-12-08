@@ -1,0 +1,82 @@
+package internal
+
+import (
+	"crypto/tls"
+	"fmt"
+	"net/smtp"
+	"os"
+)
+
+var (
+	smtpHost      = os.Getenv("SMTP_HOST")
+	smtpPort      = os.Getenv("SMTP_PORT")
+	emailAddress  = os.Getenv("EMAIL")
+	emailPassword = os.Getenv("EMAIL_PASSWORD")
+)
+
+// createMessage constructs the email message
+func createMessage(emailAddress, subject, body string) []byte {
+	return []byte("From: " + emailAddress + "\r\n" +
+		"To: " + emailAddress + "\r\n" +
+		"Subject: " + subject + "\r\n" +
+		"Content-Type: text/html; charset=UTF-8\r\n\r\n" + // Add the Content-Type header for HTML
+		body + "\r\n")
+}
+
+// SendMail sends an email using SSL/TLS
+func SendMail(subject, body string) error {
+	// Connect to the SMTP server using SSL/TLS
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: false,
+		ServerName:         smtpHost,
+	}
+
+	// Dial SMTP server
+	conn, err := tls.Dial("tcp", smtpHost+":"+smtpPort, tlsConfig)
+	if err != nil {
+		return fmt.Errorf("failed to connect to SMTP server: %w", err)
+	}
+	defer conn.Close()
+
+	// Create new SMTP client from the connection
+	client, err := smtp.NewClient(conn, smtpHost)
+	if err != nil {
+		return fmt.Errorf("failed to create SMTP client: %w", err)
+	}
+	defer client.Close()
+
+	// Authenticate with the SMTP server
+	auth := smtp.PlainAuth("", emailAddress, emailPassword, smtpHost)
+	if err = client.Auth(auth); err != nil {
+		return fmt.Errorf("failed to authenticate: %w", err)
+	}
+
+	// Set the sender and recipient
+	if err = client.Mail(emailAddress); err != nil {
+		return fmt.Errorf("failed to set sender: %w", err)
+	}
+	if err = client.Rcpt(emailAddress); err != nil {
+		return fmt.Errorf("failed to set recipient: %w", err)
+	}
+
+	// Send the email data
+	w, err := client.Data()
+	if err != nil {
+		return fmt.Errorf("failed to get data writer: %w", err)
+	}
+	_, err = w.Write(createMessage(emailAddress, subject, body))
+	if err != nil {
+		return fmt.Errorf("failed to write message: %w", err)
+	}
+	err = w.Close()
+	if err != nil {
+		return fmt.Errorf("failed to close data writer: %w", err)
+	}
+
+	// Quit the SMTP session
+	if err = client.Quit(); err != nil {
+		return fmt.Errorf("failed to close SMTP client: %w", err)
+	}
+
+	return nil
+}
