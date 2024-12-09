@@ -7,21 +7,18 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 )
-
-type MailNotificationRequest struct {
-	Subject     string `json:"subject"`
-	ContentType string `json:"content_type"`
-	Body        string `json:"body"`
-}
-
-type NotificationResponse struct {
-	Message string `json:"message"`
-}
 
 func handleIndex(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		generateAndSendResponse(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if r.URL.Path != "/" {
+		// Serve static file
+		handleStatic(w, r)
 		return
 	}
 
@@ -41,25 +38,35 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func handleStatic(w http.ResponseWriter, r *http.Request) {
+	// Serve static file
+	filePath := "./static" + r.URL.Path
+	if _, err := os.Stat(filePath); err == nil {
+		http.ServeFile(w, r, filePath)
+		return
+	} else {
+		// File not found, return 404
+		generateAndSendResponse(w, "The requested static file was not found.", http.StatusNotFound)
+		return
+	}
+}
+
 func handleSubscribe(w http.ResponseWriter, r *http.Request) {
 	// extract body from request as string
-
 	subscription, err := io.ReadAll(r.Body)
 	if err != nil {
 		generateAndSendResponse(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-
 	defer r.Body.Close()
 
 	internal.SaveSubscription(string(subscription))
-
 	generateAndSendResponse(w, "Subscription saved successfully", http.StatusOK)
 }
 
 func handleMail(w http.ResponseWriter, r *http.Request) {
 	// read the request body
-	var req MailNotificationRequest
+	var req internal.NotificationRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 
 	if err != nil {
@@ -68,7 +75,7 @@ func handleMail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// send the email
-	err = internal.SendMail(req.Subject, req.Body)
+	err = internal.SendMail(req)
 	if err != nil {
 		generateAndSendResponse(w, "Failed to send email", http.StatusInternalServerError)
 		return
@@ -79,15 +86,15 @@ func handleMail(w http.ResponseWriter, r *http.Request) {
 
 func handleWebPush(w http.ResponseWriter, r *http.Request) {
 	// read the request body
-	body, err := io.ReadAll(r.Body)
-	defer r.Body.Close()
+	var req internal.NotificationRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
 
 	if err != nil {
 		generateAndSendResponse(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	internal.SendToAllSubscribers(body)
+	internal.SendToAllSubscribers(req)
 	generateAndSendResponse(w, "Web push notifications sent", http.StatusOK)
 }
 
@@ -96,7 +103,7 @@ func handleAll(w http.ResponseWriter, r *http.Request) {
 }
 
 func generateAndSendResponse(w http.ResponseWriter, message string, statusCode int) {
-	response := NotificationResponse{Message: message}
+	response := internal.NotificationResponse{Message: message}
 
 	jsonResponse, err := json.Marshal(response)
 
@@ -117,4 +124,8 @@ func generateAndSendResponse(w http.ResponseWriter, message string, statusCode i
 
 func handleServiceWorker(writer http.ResponseWriter, request *http.Request) {
 	http.ServeFile(writer, request, "./static/service-worker.js")
+}
+
+func handleManifest(writer http.ResponseWriter, request *http.Request) {
+	http.ServeFile(writer, request, "./static/manifest.json")
 }

@@ -1,0 +1,8 @@
+{
+  "name": "Notify Service",
+  "short_name": "Notify",
+  "start_url": "/",
+  "display": "standalone",
+  "scope": "/",
+  "permissions": ["push"]
+}

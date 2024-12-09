@@ -13,8 +13,7 @@ func StartWebService() {
 	mux.HandleFunc("POST /api/mail", handleMail)
 	mux.HandleFunc("POST /api/webpush", handleWebPush)
 	mux.HandleFunc("POST /api/all", handleAll)
-	mux.HandleFunc("GET /service-worker.js", handleServiceWorker)
-	mux.HandleFunc("GET /", handleIndex)
+	mux.HandleFunc("/", handleIndex)
 
 	loggedMux := LoggingMiddleware(mux) // enable logging middleware
 

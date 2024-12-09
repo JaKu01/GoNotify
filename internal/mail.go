@@ -15,16 +15,24 @@ var (
 )
 
 // createMessage constructs the email message
-func createMessage(emailAddress, subject, body string) []byte {
+func createMessage(emailAddress, subject, contentType, body string) []byte {
 	return []byte("From: " + emailAddress + "\r\n" +
 		"To: " + emailAddress + "\r\n" +
 		"Subject: " + subject + "\r\n" +
-		"Content-Type: text/html; charset=UTF-8\r\n\r\n" + // Add the Content-Type header for HTML
+		"Content-Type: " + contentType + "; charset=UTF-8\r\n\r\n" + // Add the Content-Type header for HTML
 		body + "\r\n")
 }
 
 // SendMail sends an email using SSL/TLS
-func SendMail(subject, body string) error {
+func SendMail(request NotificationRequest) error {
+	subject := request.Subject
+	contentType := request.ContentType
+	body := request.Body
+
+	if len(contentType) == 0 {
+		contentType = "text/plain"
+	}
+
 	// Connect to the SMTP server using SSL/TLS
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: false,
@@ -64,7 +72,7 @@ func SendMail(subject, body string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get data writer: %w", err)
 	}
-	_, err = w.Write(createMessage(emailAddress, subject, body))
+	_, err = w.Write(createMessage(emailAddress, subject, contentType, body))
 	if err != nil {
 		return fmt.Errorf("failed to write message: %w", err)
 	}

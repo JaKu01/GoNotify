@@ -3,14 +3,8 @@ package internal
 import (
 	"encoding/json"
 	"github.com/SherClockHolmes/webpush-go"
-	"gorm.io/gorm"
 	"log"
 )
-
-type WebPushSubscription struct {
-	gorm.Model
-	Subscription string
-}
 
 func SaveSubscription(subscription string) {
 	if Connection == nil {
@@ -20,11 +14,17 @@ func SaveSubscription(subscription string) {
 	Connection.Create(&WebPushSubscription{Subscription: subscription})
 }
 
-func SendToAllSubscribers(body []byte) {
+func SendToAllSubscribers(request NotificationRequest) {
 	var subscriptions []WebPushSubscription
 	Connection.Find(&subscriptions)
 
 	for _, subscription := range subscriptions {
+		body, err := json.Marshal(request)
+
+		if err != nil {
+			log.Printf("Error marshalling request: %v", err)
+		}
+
 		sendNotificationToSubscription(subscription.Subscription, body)
 	}
 }
@@ -37,11 +37,10 @@ func sendNotificationToSubscription(subscription string, body []byte) {
 		log.Printf("Error unmarshalling subscription: %v", err)
 	}
 
-	log.Printf("Sending notification to %v", s)
-	log.Printf("Raw value notification to %v", subscription)
+	log.Printf("Sending notification to %v", s.Endpoint)
 
 	resp, err := webpush.SendNotification(body, s, &webpush.Options{
-		Subscriber:      "example@example.com", // Do not include "mailto:"
+		Subscriber:      "notify@jskweb.de", // Do not include "mailto:"
 		VAPIDPublicKey:  VapidPublicKey,
 		VAPIDPrivateKey: vapidPrivateKey,
 		TTL:             30,

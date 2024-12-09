@@ -9,9 +9,13 @@ services:
       - ./keys:/app/keys
       - ./internal/sqlite:/app/internal/sqlite
     environment:
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - EMAIL=${EMAIL}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+      - SCHEDULE_TIME_HOUR=${SCHEDULE_TIME_HOUR}
+      - SCHEDULE_TIME_MINUTE=${SCHEDULE_TIME_MINUTE}
       - TZ=Europe/Berlin
-    ports:
-      - "6123:8080"
     networks:
       - home_network
 
