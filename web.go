@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-func StartWebService() {
+func StartWebService() error {
 
 	mux := http.NewServeMux()
 
@@ -19,5 +19,6 @@ func StartWebService() {
 	loggedMux := LoggingMiddleware(mux) // enable logging middleware
 
 	log.Printf("Server running")
-	log.Fatal(http.ListenAndServe(":8080", loggedMux))
+	err := http.ListenAndServe(":8080", loggedMux)
+	return err
 }

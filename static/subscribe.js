@@ -123,7 +123,7 @@ function unsubscribeUserFromPush(registration) {
 
 function sendUnsubscribeRequestToServer(endpoint) {
     fetch('/api/subscribe', {
-        method: 'POST',
+        method: 'DELETE',
         headers: {
             'Content-Type': 'application/json'
         },

@@ -12,32 +12,15 @@ var (
 	smtpPort      = os.Getenv("SMTP_PORT")
 	emailAddress  = os.Getenv("EMAIL")
 	emailPassword = os.Getenv("EMAIL_PASSWORD")
-)
-
-// createMessage constructs the email message
-func createMessage(emailAddress, subject, contentType, body string) []byte {
-	return []byte("From: " + emailAddress + "\r\n" +
-		"To: " + emailAddress + "\r\n" +
-		"Subject: " + subject + "\r\n" +
-		"Content-Type: " + contentType + "; charset=UTF-8\r\n\r\n" + // Add the Content-Type header for HTML
-		body + "\r\n")
-}
-
-// SendMail sends an email using SSL/TLS
-func SendMail(request NotificationRequest) error {
-	subject := request.Subject
-	contentType := request.ContentType
-	body := request.Body
-
-	if len(contentType) == 0 {
-		contentType = "text/plain"
-	}
-
-	// Connect to the SMTP server using SSL/TLS
-	tlsConfig := &tls.Config{
+	tlsConfig     = &tls.Config{
 		InsecureSkipVerify: false,
 		ServerName:         smtpHost,
 	}
+)
+
+// SendMail sends an email using SSL/TLS
+func SendMail(request NotificationRequest) error {
+	subject, contentType, body := extractEmailDetails(request)
 
 	// Dial SMTP server
 	conn, err := tls.Dial("tcp", smtpHost+":"+smtpPort, tlsConfig)
@@ -87,4 +70,21 @@ func SendMail(request NotificationRequest) error {
 	}
 
 	return nil
+}
+
+func extractEmailDetails(request NotificationRequest) (subject string, contentType string, body string) {
+	if len(contentType) == 0 {
+		contentType = "text/plain"
+	}
+
+	return request.Subject, contentType, request.Body
+}
+
+// createMessage constructs the email message
+func createMessage(emailAddress, subject, contentType, body string) []byte {
+	return []byte("From: " + emailAddress + "\r\n" +
+		"To: " + emailAddress + "\r\n" +
+		"Subject: " + subject + "\r\n" +
+		"Content-Type: " + contentType + "; charset=UTF-8\r\n\r\n" + // Add the Content-Type header for HTML
+		body + "\r\n")
 }
