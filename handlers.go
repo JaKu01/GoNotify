@@ -64,6 +64,26 @@ func handleSubscribe(w http.ResponseWriter, r *http.Request) {
 	generateAndSendResponse(w, "Subscription saved successfully", http.StatusOK)
 }
 
+func handleDeleteSubscribe(w http.ResponseWriter, r *http.Request) {
+	// extract body from request as string
+	var req internal.WebPushUnsubscriptionRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
+
+	if err != nil {
+		generateAndSendResponse(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	err = internal.RemoveSubscription(req)
+
+	if err != nil {
+		generateAndSendResponse(w, "An error occurred while deleting the subscription", http.StatusInternalServerError)
+		return
+	}
+
+	generateAndSendResponse(w, "Subscription saved successfully", http.StatusOK)
+}
+
 func handleMail(w http.ResponseWriter, r *http.Request) {
 	// read the request body
 	var req internal.NotificationRequest

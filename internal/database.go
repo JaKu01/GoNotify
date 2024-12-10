@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"github.com/SherClockHolmes/webpush-go"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"log"

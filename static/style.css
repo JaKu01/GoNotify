@@ -1,0 +1,92 @@
+:root {
+    --nord0: #2E3440;
+    --nord1: #3B4252;
+    --nord2: #434C5E;
+    --nord3: #4C566A;
+    --nord4: #D8DEE9;
+    --nord5: #E5E9F0;
+    --nord6: #ECEFF4;
+    --nord7: #8FBCBB;
+    --nord8: #88C0D0;
+    --nord9: #81A1C1;
+    --nord10: #5E81AC;
+    --nord11: #BF616A;
+    --nord12: #D08770;
+    --nord13: #EBCB8B;
+    --nord14: #A3BE8C;
+    --nord15: #B48EAD;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: var(--nord0);
+    color: var(--nord4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+    text-align: center;
+}
+
+h1 {
+    color: var(--nord6);
+    padding: 10px;
+}
+
+.container {
+    background-color: var(--nord1);
+    border-radius: 12px;
+    padding: 20px 30px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    max-width: 400px;
+}
+
+button {
+    display: block;
+    width: 100%;
+    padding: 15px 20px;
+    margin: 15px 0;
+    font-size: 1rem;
+    font-weight: normal;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+}
+
+button#subscribeButton {
+    background-color: var(--nord8);
+    color: var(--nord0);
+}
+
+button#subscribeButton:hover {
+    background-color: var(--nord9);
+}
+
+button#unsubscribeButton {
+    background-color: var(--nord11);
+    color: var(--nord6);
+}
+
+button#unsubscribeButton:hover {
+    background-color: var(--nord12);
+}
+
+button:focus {
+    outline: 2px solid var(--nord7);
+    outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+    .container {
+        width: 90%;
+    }
+}

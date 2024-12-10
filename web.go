@@ -10,6 +10,7 @@ func StartWebService() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("POST /api/subscribe", handleSubscribe)
+	mux.HandleFunc("DELETE /api/subscribe", handleDeleteSubscribe)
 	mux.HandleFunc("POST /api/mail", handleMail)
 	mux.HandleFunc("POST /api/webpush", handleWebPush)
 	mux.HandleFunc("POST /api/all", handleAll)

@@ -4,7 +4,11 @@ import "gorm.io/gorm"
 
 type WebPushSubscription struct {
 	gorm.Model
-	Subscription string
+	Subscription webpush.Subscription
+}
+
+type WebPushUnsubscriptionRequest struct {
+	Endpoint string `json:"endpoint"`
 }
 
 type NotificationRequest struct {
