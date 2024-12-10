@@ -6,47 +6,93 @@ import (
 	"log"
 )
 
-func SaveSubscription(subscription string) {
+func SaveSubscription(subscriptionStr []byte) error {
 	if Connection == nil {
 		log.Fatalf("Database connection not initialized")
 	}
 
-	Connection.Create(&WebPushSubscription{Subscription: subscription})
+	var subscriptionFromRequest webpush.Subscription
+	err := json.Unmarshal(subscriptionStr, &subscriptionFromRequest)
+
+	if err != nil {
+		log.Printf("Can't unmarshall subscription string into webpush subscription type: %v", err)
+		return nil
+	}
+
+	dbSubscription := WebPushSubscription{
+		Endpoint:     subscriptionFromRequest.Endpoint,
+		Subscription: string(subscriptionStr),
+	}
+
+	result := Connection.Create(&dbSubscription)
+
+	if result.Error != nil {
+		log.Printf("Error saving subscription: %v", result.Error)
+		return result.Error
+	}
+	return nil
+}
+
+func RemoveSubscription(unsubscriptionRequest WebPushUnsubscriptionRequest) error {
+	if Connection == nil {
+		log.Fatalf("Database connection not initialized")
+	}
+
+	// Delete the subscription
+	result := Connection.Where("endpoint = ?", unsubscriptionRequest.Endpoint).Delete(&WebPushSubscription{})
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
 }
 
 func SendToAllSubscribers(request NotificationRequest) {
-	var subscriptions []WebPushSubscription
-	Connection.Find(&subscriptions)
+	var subscriptionsFromDb []WebPushSubscription
+	Connection.Find(&subscriptionsFromDb)
 
-	for _, subscription := range subscriptions {
-		body, err := json.Marshal(request)
+	body, err := json.Marshal(request)
 
-		if err != nil {
-			log.Printf("Error marshalling request: %v", err)
-		}
-
-		sendNotificationToSubscription(subscription.Subscription, body)
+	if err != nil {
+		log.Printf("Error marshalling request: %v", err)
+		return
 	}
+
+	var notificationsSent int
+
+	for _, subscriptionFromDb := range subscriptionsFromDb {
+		notificationsSent++
+		go sendNotificationToSubscription(subscriptionFromDb.Subscription, body)
+	}
+
+	log.Printf("Sent %v notification(s)", notificationsSent)
 }
 
 func sendNotificationToSubscription(subscription string, body []byte) {
-	// Send Notification
-	s := &webpush.Subscription{}
-	err := json.Unmarshal([]byte(subscription), s)
+
+	var webPushSubscription webpush.Subscription
+	err := json.Unmarshal([]byte(subscription), &webPushSubscription)
 	if err != nil {
-		log.Printf("Error unmarshalling subscription: %v", err)
+		log.Printf("Error unmarshalling subscriptionFromDb: %v", err)
+		return
 	}
 
-	log.Printf("Sending notification to %v", s.Endpoint)
-
-	resp, err := webpush.SendNotification(body, s, &webpush.Options{
-		Subscriber:      "notify@jskweb.de", // Do not include "mailto:"
+	resp, err := webpush.SendNotification(body, &webPushSubscription, &webpush.Options{
+		Subscriber:      "notify@jskweb.de",
 		VAPIDPublicKey:  VapidPublicKey,
 		VAPIDPrivateKey: vapidPrivateKey,
 		TTL:             30,
 	})
+
 	if err != nil {
 		log.Printf("Error sending notification: %v", err)
 	}
+
+	if resp.StatusCode != 201 && resp.StatusCode != 200 {
+		log.Printf("Error sending notification, status code: %v, response: %v", resp.StatusCode, resp)
+		log.Printf("Subscription was: %v", subscription)
+	}
+
 	defer resp.Body.Close()
 }

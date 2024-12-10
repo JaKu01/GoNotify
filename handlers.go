@@ -22,7 +22,7 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse and execute the template
+	// Parse and execute template
 	tmpl, err := template.ParseFiles("./template/index.html")
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -60,8 +60,42 @@ func handleSubscribe(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	internal.SaveSubscription(string(subscription))
+	err = internal.SaveSubscription(subscription)
+	if err != nil {
+		generateAndSendResponse(w, "An error occurred while saving the subscription", http.StatusInternalServerError)
+		return
+	}
 	generateAndSendResponse(w, "Subscription saved successfully", http.StatusOK)
+}
+
+func handleDeleteSubscribe(w http.ResponseWriter, r *http.Request) {
+	// extract body from request as string
+	var req internal.WebPushUnsubscriptionRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		generateAndSendResponse(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	err = internal.RemoveSubscription(req)
+	if err != nil {
+		generateAndSendResponse(w, "An error occurred while deleting the subscription", http.StatusInternalServerError)
+		return
+	}
+	generateAndSendResponse(w, "Subscription saved successfully", http.StatusOK)
+}
+
+func handleWebPush(w http.ResponseWriter, r *http.Request) {
+	var req internal.NotificationRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
+
+	if err != nil {
+		generateAndSendResponse(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	internal.SendToAllSubscribers(req)
+	generateAndSendResponse(w, "Web push notifications sent", http.StatusOK)
 }
 
 func handleMail(w http.ResponseWriter, r *http.Request) {
@@ -82,20 +116,6 @@ func handleMail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	generateAndSendResponse(w, "Email sent successfully", http.StatusOK)
-}
-
-func handleWebPush(w http.ResponseWriter, r *http.Request) {
-	// read the request body
-	var req internal.NotificationRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
-
-	if err != nil {
-		generateAndSendResponse(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	internal.SendToAllSubscribers(req)
-	generateAndSendResponse(w, "Web push notifications sent", http.StatusOK)
 }
 
 func handleAll(w http.ResponseWriter, r *http.Request) {
@@ -120,12 +140,4 @@ func generateAndSendResponse(w http.ResponseWriter, message string, statusCode i
 	if err != nil {
 		log.Printf("Error: failed to write response %v", err)
 	}
-}
-
-func handleServiceWorker(writer http.ResponseWriter, request *http.Request) {
-	http.ServeFile(writer, request, "./static/service-worker.js")
-}
-
-func handleManifest(writer http.ResponseWriter, request *http.Request) {
-	http.ServeFile(writer, request, "./static/manifest.json")
 }

@@ -1,74 +1,79 @@
 package internal
 
 import (
+	"fmt"
 	"github.com/SherClockHolmes/webpush-go"
 	"log"
 	"os"
 )
 
-const (
-	privateKeyPath = "./keys/private.key"
-	publicKeyPath  = "./keys/public.key"
-)
-
 var (
-	VapidPublicKey  string
+	keysDirectory   = "./keys"
+	privateKeyPath  = keysDirectory + "/private.key"
+	publicKeyPath   = keysDirectory + "/public.key"
 	vapidPrivateKey string
+	VapidPublicKey  string
 )
 
 // SetVapidKeys reads VAPID keys from disk or generates new ones if they don't exist
-func SetVapidKeys() {
-	if loadKeys() == nil {
+func SetVapidKeys() error {
+	privateKey, publicKey, err := loadKeys()
+	if err != nil {
 		// loading keys was successful
-		log.Println("VAPID keys loaded from disk")
-		return
+		privateKey, publicKey, err = generateKeys()
+		if err != nil {
+			return fmt.Errorf("error generating VAPID keys: %v", err)
+		}
 	}
-	vapidPrivateKey, VapidPublicKey = generateKeys()
+
+	VapidPublicKey = publicKey
+	vapidPrivateKey = privateKey
+
 	log.Println("VAPID keys generated and saved to disk")
-}
-
-func loadKeys() error {
-	publicKey, err := os.ReadFile(publicKeyPath)
-
-	if err != nil {
-		return err
-	}
-
-	privateKey, err := os.ReadFile(privateKeyPath)
-
-	if err != nil {
-		return err
-	}
-
-	VapidPublicKey = string(publicKey)
-	vapidPrivateKey = string(privateKey)
-
 	return nil
 }
 
-func generateKeys() (privateKey string, publicKey string) {
-	privateKey, publicKey, err := webpush.GenerateVAPIDKeys()
+func loadKeys() (privateKey string, publicKey string, err error) {
+	privateKeyFromFile, err := os.ReadFile(privateKeyPath)
+
 	if err != nil {
-		log.Fatalf("error generating VAPID keys: %v", err)
+		return privateKey, publicKey, err
+	}
+
+	publicKeyFromFile, err := os.ReadFile(publicKeyPath)
+
+	if err != nil {
+		return privateKey, publicKey, err
+	}
+
+	privateKey = string(privateKeyFromFile)
+	publicKey = string(publicKeyFromFile)
+	return privateKey, publicKey, nil
+}
+
+func generateKeys() (privateKey string, publicKey string, err error) {
+	privateKey, publicKey, err = webpush.GenerateVAPIDKeys()
+	if err != nil {
+		return privateKey, publicKey, fmt.Errorf("error generating VAPID keys: %v", err)
 	}
 
 	// Ensure the "keys" directory exists
-	err = os.MkdirAll("./keys", os.ModePerm)
+	err = os.MkdirAll(keysDirectory, os.ModePerm)
 	if err != nil {
-		log.Fatalf("error creating keys directory: %v", err)
+		return privateKey, publicKey, fmt.Errorf("error creating keys directory: %v", err)
 	}
 
 	// Write the private key to disk
 	err = os.WriteFile(privateKeyPath, []byte(privateKey), 0600)
 	if err != nil {
-		log.Fatalf("error writing private key to file: %v", err)
+		return privateKey, publicKey, fmt.Errorf("error writing private key to file: %v", err)
 	}
 
 	// Write the public key to disk
 	err = os.WriteFile(publicKeyPath, []byte(publicKey), 0600)
 	if err != nil {
-		log.Fatalf("error writing public key to file: %v", err)
+		return privateKey, publicKey, fmt.Errorf("error writing public key to file: %v", err)
 	}
 
-	return privateKey, publicKey
+	return privateKey, publicKey, nil
 }

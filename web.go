@@ -5,11 +5,12 @@ import (
 	"net/http"
 )
 
-func StartWebService() {
+func StartWebService() error {
 
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("POST /api/subscribe", handleSubscribe)
+	mux.HandleFunc("DELETE /api/subscribe", handleDeleteSubscribe)
 	mux.HandleFunc("POST /api/mail", handleMail)
 	mux.HandleFunc("POST /api/webpush", handleWebPush)
 	mux.HandleFunc("POST /api/all", handleAll)
@@ -18,5 +19,6 @@ func StartWebService() {
 	loggedMux := LoggingMiddleware(mux) // enable logging middleware
 
 	log.Printf("Server running")
-	log.Fatal(http.ListenAndServe(":8080", loggedMux))
+	err := http.ListenAndServe(":8080", loggedMux)
+	return err
 }

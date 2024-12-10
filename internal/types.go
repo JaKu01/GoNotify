@@ -1,10 +1,17 @@
 package internal
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+)
 
 type WebPushSubscription struct {
 	gorm.Model
+	Endpoint     string `gorm:"unique"`
 	Subscription string
+}
+
+type WebPushUnsubscriptionRequest struct {
+	Endpoint string `json:"endpoint"`
 }
 
 type NotificationRequest struct {

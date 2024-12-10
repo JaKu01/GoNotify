@@ -10,10 +10,19 @@ func main() {
 
 	log.Println("Starting GoNotify")
 	log.Println("Initializing database")
-	internal.InitDatabase()
+	err := internal.InitDatabase()
+	if err != nil {
+		log.Fatalf("Error initializing database: %v", err)
+	}
 
 	log.Println("Setting VAPID keys")
-	internal.SetVapidKeys()
+	err = internal.SetVapidKeys()
+	if err != nil {
+		log.Fatalf("Error setting VAPID keys: %v", err)
+	}
 
-	web.StartWebService()
+	err = web.StartWebService()
+	if err != nil {
+		log.Fatalf("Error starting web service: %v", err)
+	}
 }
