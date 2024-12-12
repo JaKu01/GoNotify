@@ -1,82 +1,180 @@
-window.addEventListener('load', () => {
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker
-            .register('./service-worker.js', { scope: './' })
-            .then(function (registration) {
-                console.log("Service Worker Registered");
-                // Handle the subscribe button click
-                const subscribeButton = document.getElementById('subscribeButton');
-                subscribeButton.addEventListener('click', () => {
-                    // Register for push notifications when the button is clicked
-                    navigator.serviceWorker.getRegistration()
-                        .then(registration => {
-                            if (registration) {
-                                console.log('Registration found')
-                                subscribeUserToPush(registration);
-                            } else {
-                                console.error('Service Worker registration not found.');
-                            }
-                        });
-                });
+let subscribeButton = document.getElementById('subscribeButton');
+let unsubscribeButton = document.getElementById('unsubscribeButton');
+let successMessage = document.getElementById('successMessage');
+let errorMessage = document.getElementById('errorMessage');
 
-                const unsubscribeButton = document.getElementById('unsubscribeButton');
-                unsubscribeButton.addEventListener('click', () => {
-                    // Register for push notifications when the button is clicked
-                    navigator.serviceWorker.getRegistration()
-                        .then(registration => {
-                            if (registration) {
-                                console.log('Registration found')
-                                unsubscribeUserFromPush(registration)
-                            } else {
-                                console.error('Service Worker registration not found.');
-                            }
-                        });
-                });
-            })
-            .catch(function (err) {
-                console.log("Service Worker Failed to Register", err);
-            })
-
-    } else {
-        console.log('service worker not ready');
+window.addEventListener('load', async () => {
+    if (!('serviceWorker' in navigator)) {
+        console.error('Service Worker not supported');
+        showErrorMessage('Service Worker not supported');
+        return;
     }
+    // Register the service worker
+    let registration = await registerServiceWorker();
+    if (!registration) {
+        console.error('Service Worker registration failed.');
+        showErrorMessage('Service Worker registration failed');
+        return;
+    }
+
+    registerEventListeners();
+
+    // Check if the user is already subscribed
+
+    if(await registration.pushManager.getSubscription()) {
+        console.log('User is already subscribed to push notifications');
+        subscribeButton.disabled = true;
+        unsubscribeButton.disabled = false;
+        return;
+    }
+
+    console.log('User is not subscribed to push notifications');
+    subscribeButton.disabled = false;
+    unsubscribeButton.disabled = true;
 });
 
- // Function to handle the push subscription
- function subscribeUserToPush(registration) {
-    // Request permission to show push notifications
-    Notification.requestPermission().then(permission => {
-        if (permission === 'granted') {
-            // Create a push subscription
-            const convertedVapidKey = urlBase64ToUint8Array(key);
-            registration.pushManager.subscribe({
-                userVisibleOnly: true, // Required for push notifications
-                applicationServerKey: convertedVapidKey
-            })
-                .then(subscription => {
-                    console.log('User subscribed to push notifications:');
-                    console.log(JSON.stringify(subscription));
-                    // Send the subscription to the server
-                    sendSubscriptionToServer(subscription);
-                })
-                .catch(err => {
-                    console.error('Failed to subscribe user:', err);
-                });
-        } else {
-            console.log('permission not granted');
-        }
+async function registerServiceWorker() {
+    try {
+        let registration = await navigator.serviceWorker
+            .register('./service-worker.js', {scope: './'});
+        console.log('Service Worker Registered');
+        return registration;
+    } catch (err) {
+        console.error("Failed to register Service Worker", err);
+    }
+    return null;
+}
+
+function registerEventListeners() {
+    subscribeButton.addEventListener('click', async () => {
+        await subscribeUserToPush();
+    });
+
+    unsubscribeButton.addEventListener('click', async () => {
+        await unsubscribeUserFromPush();
     });
 }
 
-// Function to send the subscription to the server
-function sendSubscriptionToServer(subscription) {
-    fetch('/api/subscribe', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(subscription)
+// Function to handle the push subscription
+async function subscribeUserToPush() {
+    // Register for push notifications when the subscribe button is clicked
+    let registration = await navigator.serviceWorker.getRegistration();
+    if (!registration) {
+        console.error('Service Worker not registered');
+        showErrorMessage('Service Worker not registered');
+        return;
+    }
+    console.log('Registration found')
+
+    let permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+        console.error('Permission not granted for Notification');
+        showErrorMessage('Permission not granted for Notification');
+        return;
+    }
+
+    const convertedVapidKey = urlBase64ToUint8Array(key);
+    const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: convertedVapidKey
     });
+
+    if (!subscription) {
+        console.error('Failed to subscribe to push notifications');
+        showErrorMessage('Failed to subscribe to push notifications');
+        return;
+    }
+    console.log('User subscribed to push notifications:', subscription);
+
+    if (!await sendSubscriptionToServer(subscription)) {
+        console.error('Failed to send subscription to server');
+        showErrorMessage('Failed to send subscription to server');
+        return;
+    }
+    console.log('Sent subscription to Server');
+    subscribeButton.disabled = true;
+    unsubscribeButton.disabled = false;
+    showSuccessMessage('Successfully subscribed to push notifications!');
+}
+
+
+// Function to send the subscription to the server
+async function sendSubscriptionToServer(subscription) {
+    try {
+        return await fetch('/api/subscribe', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(subscription)
+        });
+    } catch (err) {
+        console.error('Failed to send subscription to server', err);
+    }
+    return null;
+}
+
+async function unsubscribeUserFromPush() {
+    let registration = await navigator.serviceWorker.getRegistration();
+    if (!registration) {
+        console.error('Service Worker not registered');
+        showErrorMessage('Service Worker not registered');
+        return;
+    }
+    console.log('Registration found')
+
+    let subscription = await registration.pushManager.getSubscription();
+    if (!subscription) {
+        console.error('User is not subscribed to push notifications');
+        showErrorMessage('User is not subscribed to push notifications');
+        return;
+    }
+
+    if (!await subscription.unsubscribe()) {
+        console.error('Failed to unsubscribe from push notifications');
+        showErrorMessage('Failed to unsubscribe from push notifications');
+        return;
+    }
+    console.log('User unsubscribed from push notifications');
+
+    if (!await sendUnsubscribeRequestToServer(subscription.endpoint)) {
+        console.error('Failed to send unsubscription request to server');
+        showErrorMessage('Failed to send unsubscription request to server');
+        return;
+    }
+    console.log('Sent unsubscription request to server');
+    subscribeButton.disabled = false;
+    unsubscribeButton.disabled = true;
+    showSuccessMessage('Successfully unsubscribed to push notifications!');
+}
+
+async function sendUnsubscribeRequestToServer(endpoint) {
+    try {
+        return await fetch('/api/subscribe', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                endpoint: endpoint
+            })
+        });
+    } catch (err) {
+        console.error('Failed to send unsubscription request to server', err);
+    }
+    return null;
+}
+
+function showErrorMessage(message) {
+    errorMessage.textContent = message + ' 🥺';
+    errorMessage.style.display = 'block';
+    successMessage.style.display = 'none';
+}
+
+function showSuccessMessage(message) {
+    successMessage.textContent = message + ' 😎';
+    successMessage.style.display = 'block';
+    errorMessage.style.display = 'none';
 }
 
 // Convert the VAPID public key to Uint8Array
@@ -94,43 +192,4 @@ function urlBase64ToUint8Array(base64String) {
     }
 
     return outputArray;
-}
-
-function unsubscribeUserFromPush(registration) {
-    // TODO: Remove subscription in backend first
-    registration.pushManager.getSubscription()
-        .then(subscription => {
-            if (subscription) {
-                // Unsubscribe the user from push notifications
-                console.log(subscription);
-                
-                subscription.unsubscribe()
-                    .then(() => {
-                        console.log('User unsubscribed from push notifications');
-                        sendUnsubscribeRequestToServer(subscription.endpoint)
-                    })
-                    .catch(err => {
-                        console.error('Failed to unsubscribe user:', err);
-                    });
-            } else {
-                console.log('No subscription found.');
-            }
-        })
-        .catch(err => {
-            console.error('Error fetching subscription:', err);
-        });
-}
-
-function sendUnsubscribeRequestToServer(endpoint) {
-    fetch('/api/subscribe', {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            endpoint: endpoint
-        })
-    }).catch((err) => {
-        console.log("Failed to send unsubscription request to server.", err);
-    });
 }
