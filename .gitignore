@@ -2,5 +2,3 @@
 *.key
 *.db
 .env
-*.png
-*.ico
