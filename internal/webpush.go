@@ -2,8 +2,11 @@ package internal
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/SherClockHolmes/webpush-go"
 	"log"
+	"sync"
+	"sync/atomic"
 )
 
 func SaveSubscription(subscriptionStr []byte) error {
@@ -48,7 +51,7 @@ func RemoveSubscription(unsubscriptionRequest WebPushUnsubscriptionRequest) erro
 	return nil
 }
 
-func SendToAllSubscribers(request NotificationRequest) {
+func SendToAllSubscribers(request NotificationRequest) error {
 	var subscriptionsFromDb []WebPushSubscription
 	Connection.Find(&subscriptionsFromDb)
 
@@ -56,25 +59,35 @@ func SendToAllSubscribers(request NotificationRequest) {
 
 	if err != nil {
 		log.Printf("Error marshalling request: %v", err)
-		return
+		return err
 	}
 
 	var notificationsSent int
+	var waitingGroup sync.WaitGroup
+	var errorOccurred atomic.Bool
 
 	for _, subscriptionFromDb := range subscriptionsFromDb {
 		notificationsSent++
-		go sendNotificationToSubscription(subscriptionFromDb.Subscription, body)
+		waitingGroup.Add(1)
+		go sendNotificationToSubscription(subscriptionFromDb.Subscription, body, &waitingGroup, &errorOccurred)
 	}
 
-	log.Printf("Sent %v notification(s)", notificationsSent)
+	waitingGroup.Wait()
+	if errorOccurred.Load() {
+		return errors.New("error sending notifications")
+	}
+
+	return nil
 }
 
-func sendNotificationToSubscription(subscription string, body []byte) {
+func sendNotificationToSubscription(subscription string, body []byte, waitingGroup *sync.WaitGroup, errorOccurred *atomic.Bool) {
+	defer waitingGroup.Done()
 
 	var webPushSubscription webpush.Subscription
 	err := json.Unmarshal([]byte(subscription), &webPushSubscription)
 	if err != nil {
 		log.Printf("Error unmarshalling subscriptionFromDb: %v", err)
+		errorOccurred.Store(true)
 		return
 	}
 
@@ -87,11 +100,14 @@ func sendNotificationToSubscription(subscription string, body []byte) {
 
 	if err != nil {
 		log.Printf("Error sending notification: %v", err)
+		errorOccurred.Store(true)
+		return
 	}
 
 	if resp.StatusCode != 201 && resp.StatusCode != 200 {
 		log.Printf("Error sending notification, status code: %v, response: %v", resp.StatusCode, resp)
 		log.Printf("Subscription was: %v", subscription)
+		errorOccurred.Store(true)
 	}
 
 	defer resp.Body.Close()
