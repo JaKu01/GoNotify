@@ -94,7 +94,11 @@ func handleWebPush(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	internal.SendToAllSubscribers(req)
+	err = internal.SendToAllSubscribers(req)
+	if err != nil {
+		generateAndSendResponse(w, "Failed to send web push notifications", http.StatusInternalServerError)
+		return
+	}
 	generateAndSendResponse(w, "Web push notifications sent", http.StatusOK)
 }
 
