@@ -24,12 +24,12 @@ func SetVapidKeys() error {
 		if err != nil {
 			return fmt.Errorf("error generating VAPID keys: %v", err)
 		}
+		log.Println("VAPID keys generated and saved to disk")
 	}
 
 	VapidPublicKey = publicKey
 	vapidPrivateKey = privateKey
 
-	log.Println("VAPID keys generated and saved to disk")
 	return nil
 }
 

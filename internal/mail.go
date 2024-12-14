@@ -73,6 +73,7 @@ func SendMail(request NotificationRequest) error {
 }
 
 func extractEmailDetails(request NotificationRequest) (subject string, contentType string, body string) {
+	contentType = request.ContentType
 	if len(contentType) == 0 {
 		contentType = "text/plain"
 	}
