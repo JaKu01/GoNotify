@@ -13,8 +13,6 @@ services:
       - SMTP_PORT=${SMTP_PORT}
       - EMAIL=${EMAIL}
       - EMAIL_PASSWORD=${EMAIL_PASSWORD}
-      - SCHEDULE_TIME_HOUR=${SCHEDULE_TIME_HOUR}
-      - SCHEDULE_TIME_MINUTE=${SCHEDULE_TIME_MINUTE}
       - TZ=Europe/Berlin
     networks:
       - home_network
