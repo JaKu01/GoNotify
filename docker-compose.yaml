@@ -16,6 +16,7 @@ services:
       - TZ=Europe/Berlin
     networks:
       - home_network
+    restart: 'unless-stopped'
 
 networks:
   home_network:
