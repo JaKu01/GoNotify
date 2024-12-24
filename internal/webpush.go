@@ -3,10 +3,11 @@ package internal
 import (
 	"encoding/json"
 	"errors"
-	"github.com/SherClockHolmes/webpush-go"
 	"log"
 	"sync"
 	"sync/atomic"
+
+	"github.com/SherClockHolmes/webpush-go"
 )
 
 func SaveSubscription(subscriptionStr []byte) error {
@@ -105,6 +106,22 @@ func sendNotificationToSubscription(subscription string, body []byte, waitingGro
 	}
 
 	if resp.StatusCode != 201 && resp.StatusCode != 200 {
+		if resp.StatusCode == 410 { // endpoint does not exist anymore
+			unsubscriptionRequest := WebPushUnsubscriptionRequest{
+				Endpoint: webPushSubscription.Endpoint,
+			}
+
+			err = RemoveSubscription(unsubscriptionRequest)
+			if err != nil {
+				log.Printf("Error deleting gone subscription: %v", err)
+				errorOccurred.Store(true)
+				return
+			}
+
+			log.Printf("Successfully removed subscription after receiving 410 status code: %v", webPushSubscription.Endpoint)
+			return
+		}
+
 		log.Printf("Error sending notification, status code: %v, response: %v", resp.StatusCode, resp)
 		log.Printf("Subscription was: %v", subscription)
 		errorOccurred.Store(true)
