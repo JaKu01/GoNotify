@@ -14,10 +14,4 @@ services:
       - EMAIL=${EMAIL}
       - EMAIL_PASSWORD=${EMAIL_PASSWORD}
       - TZ=Europe/Berlin
-    networks:
-      - home_network
     restart: 'unless-stopped'
-
-networks:
-  home_network:
-    external: true
