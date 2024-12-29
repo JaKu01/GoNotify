@@ -14,6 +14,7 @@ The following environment variables are required for GoNotify to function proper
 - **`SMTP_PORT`**: The port used to connect to the SMTP server.
 - **`EMAIL`**: The email address used as the sender for outgoing notifications.
 - **`EMAIL_PASSWORD`**: The password or app-specific key for the sender's email account.
+- **`NETWORK_NAME`**: The name of the docker network the container should run in.
 
 Once your environment variables are set, you can start the service using:
 

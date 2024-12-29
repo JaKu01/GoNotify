@@ -15,9 +15,10 @@ services:
       - EMAIL_PASSWORD=${EMAIL_PASSWORD}
       - TZ=Europe/Berlin
     networks:
-      - home_network
+      - notify_network
     restart: 'unless-stopped'
 
 networks:
-  home_network:
+  notify_network:
     external: true
+    name: ${NETWORK_NAME}
