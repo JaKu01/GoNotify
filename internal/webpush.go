@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"net/http"
 	"sync"
 	"sync/atomic"
 
@@ -25,7 +26,8 @@ func SaveSubscription(subscriptionStr []byte) error {
 
 	dbSubscription := WebPushSubscription{
 		Endpoint:     subscriptionFromRequest.Endpoint,
-		Subscription: string(subscriptionStr),
+		AuthSecret:   subscriptionFromRequest.Keys.Auth,
+		P256dhKey:    subscriptionFromRequest.Keys.P256dh,
 	}
 
 	result := Connection.Create(&dbSubscription)
@@ -70,7 +72,7 @@ func SendToAllSubscribers(request NotificationRequest) error {
 	for _, subscriptionFromDb := range subscriptionsFromDb {
 		notificationsSent++
 		waitingGroup.Add(1)
-		go sendNotificationToSubscription(subscriptionFromDb.Subscription, body, &waitingGroup, &errorOccurred)
+		go sendNotificationToSubscription(subscriptionFromDb, body, &waitingGroup, &errorOccurred)
 	}
 
 	waitingGroup.Wait()
@@ -81,18 +83,18 @@ func SendToAllSubscribers(request NotificationRequest) error {
 	return nil
 }
 
-func sendNotificationToSubscription(subscription string, body []byte, waitingGroup *sync.WaitGroup, errorOccurred *atomic.Bool) {
+func sendNotificationToSubscription(dbSubscription WebPushSubscription, body []byte, waitingGroup *sync.WaitGroup, errorOccurred *atomic.Bool) {
 	defer waitingGroup.Done()
 
-	var webPushSubscription webpush.Subscription
-	err := json.Unmarshal([]byte(subscription), &webPushSubscription)
-	if err != nil {
-		log.Printf("Error unmarshalling subscriptionFromDb: %v", err)
-		errorOccurred.Store(true)
-		return
+	webpushLibrarySubscription  := webpush.Subscription{
+		Endpoint: dbSubscription.Endpoint,
+		Keys: webpush.Keys{
+			Auth: dbSubscription.AuthSecret,
+			P256dh: dbSubscription.P256dhKey,
+		},
 	}
 
-	resp, err := webpush.SendNotification(body, &webPushSubscription, &webpush.Options{
+	resp, err := webpush.SendNotification(body, &webpushLibrarySubscription, &webpush.Options{
 		Subscriber:      "notify@jskweb.de",
 		VAPIDPublicKey:  VapidPublicKey,
 		VAPIDPrivateKey: vapidPrivateKey,
@@ -105,10 +107,10 @@ func sendNotificationToSubscription(subscription string, body []byte, waitingGro
 		return
 	}
 
-	if resp.StatusCode != 201 && resp.StatusCode != 200 {
-		if resp.StatusCode == 410 { // endpoint does not exist anymore
+	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == http.StatusGone { // endpoint does not exist anymore
 			unsubscriptionRequest := WebPushUnsubscriptionRequest{
-				Endpoint: webPushSubscription.Endpoint,
+				Endpoint: dbSubscription.Endpoint,
 			}
 
 			err = RemoveSubscription(unsubscriptionRequest)
@@ -118,12 +120,12 @@ func sendNotificationToSubscription(subscription string, body []byte, waitingGro
 				return
 			}
 
-			log.Printf("Successfully removed subscription after receiving 410 status code: %v", webPushSubscription.Endpoint)
+			log.Printf("Successfully removed subscription after receiving 410 status code: %v", dbSubscription.Endpoint)
 			return
 		}
 
 		log.Printf("Error sending notification, status code: %v, response: %v", resp.StatusCode, resp)
-		log.Printf("Subscription was: %v", subscription)
+		log.Printf("Subscription was: %v", dbSubscription)
 		errorOccurred.Store(true)
 	}
 
