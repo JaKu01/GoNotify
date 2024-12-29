@@ -2,9 +2,12 @@ package internal
 
 import (
 	"fmt"
+	"log"
+	"os"
+	"path"
+
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"log"
 )
 
 var (
@@ -13,7 +16,14 @@ var (
 )
 
 func InitDatabase() error {
-	var err error
+	// Ensure that all directories of the DatabasePath exists.
+	// Otherwise, sqlite will fail when trying to open the database file, i.e. DatabasePath.
+	databaseParentDirectoryPath := path.Dir(DatabasePath)
+	err := os.MkdirAll(databaseParentDirectoryPath, 0775)
+	if err != nil {
+		return fmt.Errorf("failed to create parent directories '%s' of the database path: %w", databaseParentDirectoryPath, err)
+	}
+
 	Connection, err = gorm.Open(sqlite.Open(DatabasePath), &gorm.Config{})
 
 	if err != nil {
