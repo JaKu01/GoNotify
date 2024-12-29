@@ -21,4 +21,4 @@ services:
 networks:
   notify_network:
     external: true
-    name: ${NETWORK_NAME:-notify_default_network}
+    name: ${NETWORK_NAME}
