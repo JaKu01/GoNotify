@@ -66,21 +66,21 @@ func TestSaveSubscription(t *testing.T) {
 // TestRemoveSubscription tests the RemoveSubscription function
 func TestRemoveSubscription(t *testing.T) {
 	setupTestDB(t)
-
-	unsubscriptionRequest := WebPushUnsubscriptionRequest{
-		Endpoint: "https://example.com",
-	}
-
+	
 	// First, save a subscription to the database
-	subscriptionStr := []byte(`{"endpoint": "https://example.com", "keys": {"p256dh": "key1", "auth": "key2"}}`)
 	subscriptionForDb := WebPushSubscription{
-		Endpoint:     unsubscriptionRequest.Endpoint,
-		Subscription: string(subscriptionStr),
+		Endpoint:     "https://example.com",
+		P256dhKey:    "key1",
+		AuthSecret:   "key2",
 	}
 
 	result := testDB.Create(&subscriptionForDb)
 	if result.Error != nil {
 		t.Fatalf("Failed to save subscription to the database: %v", result.Error)
+	}
+	
+	unsubscriptionRequest := WebPushUnsubscriptionRequest{
+		Endpoint: subscriptionForDb.Endpoint,
 	}
 
 	// Test successful removal

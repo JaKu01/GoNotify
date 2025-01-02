@@ -7,7 +7,8 @@ import (
 type WebPushSubscription struct {
 	gorm.Model
 	Endpoint     string `gorm:"unique"`
-	Subscription string
+	AuthSecret   string
+	P256dhKey    string
 }
 
 type WebPushUnsubscriptionRequest struct {
