@@ -24,6 +24,9 @@ spec:
               name: gonotify-secret
           ports:
             - containerPort: 8080
+          env:
+            - name: TZ
+              value: Europe/Berlin
           volumeMounts:
             - name: static-volume
               mountPath: /app/static
