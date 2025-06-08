@@ -1,0 +1,12 @@
+namespace: home-server
+
+resources:
+  - k8s_temp.yaml
+
+secretGenerator:
+  - name: gonotify-secret
+    envs:
+      - .env
+
+generatorOptions:
+  disableNameSuffixHash: true

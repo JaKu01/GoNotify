@@ -1,0 +1,85 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gonotify
+  namespace: home-server   # change to your namespace
+  labels:
+    app: gonotify
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gonotify
+  template:
+    metadata:
+      labels:
+        app: gonotify
+    spec:
+      containers:
+        - name: gonotify
+          image: ${REGISTRY_HOST}/gonotify:latest 
+          envFrom:
+          - secretRef:
+              name: gonotify-secret
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: static-volume
+              mountPath: /app/static
+              readOnly: true
+            - name: template-volume
+              mountPath: /app/template
+              readOnly: true
+            - name: keys-volume
+              mountPath: /app/keys
+            - name: sqlite-volume
+              mountPath: /app/internal/sqlite
+      volumes:
+        - name: static-volume
+          hostPath:
+            path: ${WORKING_DIR}/static
+            type: Directory
+        - name: template-volume
+          hostPath: 
+            path: ${WORKING_DIR}/template
+            type: Directory
+        - name: keys-volume
+          hostPath: 
+            path: ${WORKING_DIR}/keys
+            type: Directory
+        - name: sqlite-volume
+          hostPath: 
+            path: ${WORKING_DIR}/internal/sqlite
+            type: Directory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gonotify
+  namespace: home-server
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: gonotify
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gonotify-ingress
+  namespace: home-server
+spec:
+  rules:
+    - host: ${HOST}   # use your own test host, or skip host to catch all
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: gonotify
+                port:
+                  number: 8080
