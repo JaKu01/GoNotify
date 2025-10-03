@@ -1,8 +1,8 @@
 package main
 
 import (
-	web "github.com/JaKu01/GoNotify"
 	"github.com/JaKu01/GoNotify/internal"
+	"github.com/JaKu01/GoNotify/web"
 	"log"
 )
 

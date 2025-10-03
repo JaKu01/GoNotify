@@ -20,6 +20,13 @@ type NotificationRequest struct {
 	Body        string `json:"body"`
 }
 
+type TelegramRequest struct {
+	Subject  string `json:"subject"`
+	Body     string `json:"body"`
+	ApiToken string `json:"api_token"`
+	ChatId   int64  `json:"chat_id"`
+}
+
 type NotificationResponse struct {
 	Message string `json:"message"`
 }

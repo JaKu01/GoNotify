@@ -122,6 +122,23 @@ func handleMail(w http.ResponseWriter, r *http.Request) {
 	generateAndSendResponse(w, "Email sent successfully", http.StatusOK)
 }
 
+func handleTelegram(w http.ResponseWriter, r *http.Request) {
+	// read the request body
+	var req internal.TelegramRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
+
+	if err != nil {
+		generateAndSendResponse(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	err = internal.SendTelegramMessage(req.ApiToken, req.ChatId, req.Subject, req.Body)
+	if err != nil {
+		log.Printf("Error sending telegram message: %v", err)
+		generateAndSendResponse(w, "Failed to send telegram notifications", http.StatusInternalServerError)
+	}
+}
+
 func handleAll(w http.ResponseWriter, r *http.Request) {
 	generateAndSendResponse(w, "Not yet implemented", http.StatusNotImplemented)
 }

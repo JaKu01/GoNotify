@@ -13,6 +13,7 @@ func StartWebService() error {
 	mux.HandleFunc("DELETE /api/subscribe", handleDeleteSubscribe)
 	mux.HandleFunc("POST /api/mail", handleMail)
 	mux.HandleFunc("POST /api/webpush", handleWebPush)
+	mux.HandleFunc("POST /api/telegram", handleTelegram)
 	mux.HandleFunc("POST /api/all", handleAll)
 	mux.HandleFunc("/", handleIndex)
 
