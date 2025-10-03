@@ -15,6 +15,7 @@ func StartWebService() error {
 	mux.HandleFunc("POST /api/webpush", handleWebPush)
 	mux.HandleFunc("POST /api/telegram", handleTelegram)
 	mux.HandleFunc("POST /api/all", handleAll)
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 	mux.HandleFunc("/", handleIndex)
 
 	loggedMux := LoggingMiddleware(mux) // enable logging middleware

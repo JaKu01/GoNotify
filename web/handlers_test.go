@@ -4,11 +4,17 @@ import (
 	"github.com/JaKu01/GoNotify/internal"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 )
 
 func TestHandleIndex(t *testing.T) {
+	err := os.Chdir("../")
+	if err != nil {
+		t.Fatalf("Error when setting working dir: %v", err)
+	}
+
 	req, err := http.NewRequest("GET", "/", nil)
 	if err != nil {
 		t.Fatalf("could not create request: %v", err)
@@ -32,23 +38,5 @@ func TestHandleIndex(t *testing.T) {
 
 	if !strings.Contains(body, expected) {
 		t.Errorf("expected body to contain %v, got %v", expected, rr.Body.String())
-	}
-}
-
-func TestHandleStatic(t *testing.T) {
-	req, err := http.NewRequest("GET", "/subscribe.js", nil)
-	if err != nil {
-		t.Fatalf("could not create request: %v", err)
-	}
-
-	// Create a response recorder
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(handleStatic)
-
-	handler.ServeHTTP(rr, req)
-
-	// Check for status code 200
-	if rr.Code != http.StatusOK {
-		t.Errorf("expected status code 404, got %v", rr.Code)
 	}
 }

@@ -7,18 +7,11 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
 )
 
 func handleIndex(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		generateAndSendResponse(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	if r.URL.Path != "/" {
-		// Serve static file
-		handleStatic(w, r)
 		return
 	}
 
@@ -35,19 +28,6 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Printf("Template execution error: %v", err)
-	}
-}
-
-func handleStatic(w http.ResponseWriter, r *http.Request) {
-	// Serve static file
-	filePath := "./static" + r.URL.Path
-	if _, err := os.Stat(filePath); err == nil {
-		http.ServeFile(w, r, filePath)
-		return
-	} else {
-		// File not found, return 404
-		generateAndSendResponse(w, "The requested static file was not found.", http.StatusNotFound)
-		return
 	}
 }
 
