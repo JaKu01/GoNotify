@@ -15,6 +15,7 @@ The following environment variables are required for GoNotify to function proper
 - **`EMAIL`**: The email address used as the sender for outgoing notifications.
 - **`EMAIL_PASSWORD`**: The password or app-specific key for the sender's email account.
 - **`NETWORK_NAME`**: The name of the docker network the container should run in.
+- **`TELEGRAM_API_TOKEN`**: **Optional**, when specified the `api_token` field in the request body can be omitted and this value is used as a standard token for all requests to the telegram API
 
 Once your environment variables are set, you can start the service using:
 
@@ -124,7 +125,50 @@ curl -X POST http://localhost:8080/api/mail \
 
 ---
 
-These endpoints make it easy to send both Web Push and Email notifications directly via simple JSON requests. The provided examples should help you get started quickly.
+### 📲 **Telegram Endpoint** (`/api/telegram`)
+
+#### **How it Works**
+GoNotify allows you to send Telegram messages directly to a specified chat using the Telegram Bot API. You can configure a default API token via environment variables or provide it in the request body.
+
+#### **Sending a Telegram Notification**
+To send a Telegram message, make a `POST` request to the following endpoint:
+
+```
+POST /api/telegram
+```
+
+#### **Request Body**
+The request body must be in JSON format and follow this structure:
+
+```json
+{
+  "api_token": "Your Telegram Bot API token (optional if set via environment variable)",
+  "chat_id": 123456789,
+  "subject": "The message subject",
+  "body": "The message content"
+}
+```
+
+#### **Field Descriptions**
+- **`api_token`**: *(Optional)* The Telegram Bot API token. If omitted, the value from the `TELEGRAM_API_TOKEN` environment variable will be used.
+- **`chat_id`**: The unique identifier for the target Telegram chat.
+- **`subject`**: The subject or title of the message.
+- **`body`**: The main content of the Telegram message.
+
+#### **Example Request (cURL)**
+```bash
+curl -X POST http://localhost:8080/api/telegram \
+  -H "Content-Type: application/json" \
+  -d '{
+    "api_token": "MY_API_TOKEN",
+    "chat_id": 987654321,
+    "subject": "Alert!",
+    "body": "A new event has occurred."
+  }'
+```
+---
+
+These endpoints make it easy to send Web Push, Email and Telegram notifications directly via simple JSON requests. The provided examples should help you get started quickly.
 
 
 ## Gopher Icon 
