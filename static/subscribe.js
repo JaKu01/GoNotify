@@ -36,7 +36,7 @@ window.addEventListener('load', async () => {
 async function registerServiceWorker() {
     try {
         let registration = await navigator.serviceWorker
-            .register('./service-worker.js', {scope: './'});
+            .register('./static/service-worker.js', {scope: './static/'});
         console.log('Service Worker Registered');
         return registration;
     } catch (err) {
@@ -58,7 +58,7 @@ function registerEventListeners() {
 // Function to handle the push subscription
 async function subscribeUserToPush() {
     // Register for push notifications when the subscribe button is clicked
-    let registration = await navigator.serviceWorker.getRegistration();
+    let registration = await navigator.serviceWorker.getRegistration('/static/');
     if (!registration) {
         console.error('Service Worker not registered');
         showErrorMessage('Service Worker not registered');
